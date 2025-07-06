@@ -1,6 +1,6 @@
-package com.fiap.cliente.domain;
+package com.fiap.pagamento.domain;
 
-import com.fiap.cliente.enuns.StatusPedido;
+import com.fiap.pagamento.enuns.StatusPedido;
 import lombok.*;
 import java.time.LocalDateTime;
 import java.util.List;

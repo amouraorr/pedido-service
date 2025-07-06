@@ -1,4 +1,4 @@
-package com.fiap.cliente.enuns;
+package com.fiap.pagamento.enuns;
 
 public enum StatusPedido {
     CRIADO,

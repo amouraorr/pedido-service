@@ -1,4 +1,4 @@
-package com.fiap.cliente.config.security;
+package com.fiap.pagamento.config.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

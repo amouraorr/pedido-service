@@ -1,4 +1,4 @@
-package com.fiap.cliente.domain;
+package com.fiap.pagamento.domain;
 
 import lombok.*;
 
