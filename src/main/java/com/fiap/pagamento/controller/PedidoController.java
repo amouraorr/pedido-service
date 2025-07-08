@@ -2,7 +2,7 @@ package com.fiap.pagamento.controller;
 
 import com.fiap.pagamento.dto.request.PedidoRequestDTO;
 import com.fiap.pagamento.dto.response.PedidoResponseDTO;
-import com.fiap.pagamento.usecase.PedidoUseCase;
+import com.fiap.pagamento.usecase.service.PedidoUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 

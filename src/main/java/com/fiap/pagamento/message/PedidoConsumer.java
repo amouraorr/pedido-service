@@ -1,7 +1,7 @@
 package com.fiap.pagamento.message;
 
 import com.fiap.pagamento.dto.request.PedidoRequestDTO;
-import com.fiap.pagamento.service.PedidoService;
+import com.fiap.pagamento.usecase.service.PedidoUseCaseImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class PedidoConsumer {
 
-    private final PedidoService pedidoUseCase;
+    private final PedidoUseCaseImpl pedidoUseCase;
 
     @KafkaListener(topics = "novo-pedido", groupId = "pedido-service", containerFactory = "pedidoKafkaListenerContainerFactory")
     public void consumirPedido(PedidoRequestDTO pedidoRequestDTO) {

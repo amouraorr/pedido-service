@@ -1,4 +1,4 @@
-package com.fiap.pagamento.usecase;
+package com.fiap.pagamento.usecase.service;
 
 
 import com.fiap.pagamento.dto.request.PedidoRequestDTO;
