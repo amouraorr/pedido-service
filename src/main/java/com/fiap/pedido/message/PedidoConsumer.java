@@ -21,8 +21,13 @@ public class PedidoConsumer {
     @KafkaListener(topics = "novo-pedido", groupId = "pedido-service", containerFactory = "pedidoKafkaListenerContainerFactory")
     public void consumirPedido(PedidoRequestDTO pedidoRequestDTO) {
         log.info("Recebido pedido do Kafka: {}", pedidoRequestDTO);
-        //Chamar o método de processamento do pedido
-        pedidoUseCase.criarPedido(pedidoRequestDTO);
+        try {
+            pedidoUseCase.criarPedido(pedidoRequestDTO);
+            log.info("Pedido processado com sucesso para pedido: {}", pedidoRequestDTO);
+        } catch (Exception e) {
+            log.error("Erro ao processar pedido recebido do Kafka: {}", pedidoRequestDTO, e);
+            //lógica de retry ou envio para dead letter queue
+        }
 
         // TODO: Após criar, iniciar o fluxo de chamadas REST para os outros microsserviços:
         // - Produto Service
