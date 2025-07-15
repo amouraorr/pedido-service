@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
-@EntityScan(basePackages = "com.fiap.pagamento.entity")
-@EnableJpaRepositories(basePackages = "com.fiap.pagamento.repository")
+@EntityScan(basePackages = "com.fiap.pedido.entity")
+@EnableJpaRepositories(basePackages = "com.fiap.pedido.repository")
 public class PedidoServiceApplication {
 
 	public static void main(String[] args) {
