@@ -26,7 +26,8 @@ public class PedidoUseCaseImpl implements PedidoUseCase {
         try {
             log.info("Criando pedido: {}", pedidoRequestDTO);
             Pedido pedido = pedidoMapper.toDomain(pedidoRequestDTO);
-            pedido.setStatus(StatusPedido.CRIADO);
+            pedido.setStatus(StatusPedido.ABERTO);
+            pedido.setDataCriacao(java.time.LocalDateTime.now());
             Pedido salvo = pedidoRepository.save(pedido);
             PedidoResponseDTO response = pedidoMapper.toResponse(salvo);
             log.info("Pedido criado com sucesso: {}", response);
