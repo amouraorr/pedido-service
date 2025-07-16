@@ -1,9 +1,10 @@
 package com.fiap.pedido.enuns;
 
 public enum StatusPedido {
-    CRIADO,
-    PROCESSANDO,
-    ENVIADO,
-    ENTREGUE,
+
+    ABERTO,
+    FECHADO_COM_SUCESSO,
+    FECHADO_SEM_ESTOQUE,
+    FECHADO_SEM_CREDITO,
     CANCELADO
 }
