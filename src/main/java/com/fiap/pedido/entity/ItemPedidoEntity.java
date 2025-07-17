@@ -16,7 +16,7 @@ public class ItemPedidoEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long produtoId;
+    private String produtoId;
     private Integer quantidade;
     private Double precoUnitario;
 
