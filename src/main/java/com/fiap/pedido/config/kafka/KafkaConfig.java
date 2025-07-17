@@ -23,21 +23,21 @@ import java.util.Map;
 public class KafkaConfig {
 
     @Bean
-    public ConsumerFactory<String, PedidoRequestDTO> pedidoConsumerFactory() {
-        JsonDeserializer<PedidoRequestDTO> deserializer = new JsonDeserializer<>(PedidoRequestDTO.class, false);
-        deserializer.addTrustedPackages("*");
+    public ConsumerFactory<String, PedidoRequestDTO> consumerFactory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092");
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "pedido-service");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializer);
-        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), deserializer);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.fiap.pedido.dto.request");
+        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(),
+                new JsonDeserializer<>(PedidoRequestDTO.class, false));
     }
 
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, PedidoRequestDTO> pedidoKafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, PedidoRequestDTO> factory = new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(pedidoConsumerFactory());
+        factory.setConsumerFactory(consumerFactory());
         return factory;
     }
 }

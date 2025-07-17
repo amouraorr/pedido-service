@@ -29,6 +29,13 @@ public class PedidoConsumer {
     public void consumirPedido(PedidoRequestDTO pedidoRequestDTO) {
         log.info("Recebido pedido do Kafka: {}", pedidoRequestDTO);
         try {
+            // Verificação evitar NullPointerException ao acessar dadosPagamento
+            if (pedidoRequestDTO.getDadosPagamento() == null) {
+                log.error("Dados de pagamento estão nulos no pedido recebido: {}", pedidoRequestDTO);
+                // Opcional: atualizar status do pedido para indicar erro ou rejeição
+                return; // interrompe o processamento deste pedido
+            }
+
             // 1. Criar pedido no banco com status ABERTO e data atual
             var pedidoResponse = pedidoUseCase.criarPedido(pedidoRequestDTO);
             log.info("Pedido criado com sucesso: {}", pedidoResponse);
