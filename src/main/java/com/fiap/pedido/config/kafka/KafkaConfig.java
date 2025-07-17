@@ -24,7 +24,7 @@ public class KafkaConfig {
 
     @Bean
     public ConsumerFactory<String, PedidoRequestDTO> pedidoConsumerFactory() {
-        JsonDeserializer<PedidoRequestDTO> deserializer = new JsonDeserializer<>(PedidoRequestDTO.class);
+        JsonDeserializer<PedidoRequestDTO> deserializer = new JsonDeserializer<>(PedidoRequestDTO.class, false);
         deserializer.addTrustedPackages("*");
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092");
