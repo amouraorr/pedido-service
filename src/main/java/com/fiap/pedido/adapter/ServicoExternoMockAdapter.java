@@ -15,7 +15,7 @@ import java.util.UUID;
 @Component
 public class ServicoExternoMockAdapter {
 
-    public ClienteDTO consultarCliente(Long clienteId) {
+    public ClienteDTO consultarCliente(String clienteId) {
         log.info("Mock: consultando cliente com id {}", clienteId);
         ClienteDTO cliente = new ClienteDTO();
         cliente.setId(clienteId);
@@ -26,7 +26,7 @@ public class ServicoExternoMockAdapter {
         return cliente;
     }
 
-    public ProdutoDTO consultarProduto(Long produtoId) {
+    public ProdutoDTO consultarProduto(String produtoId) {
         log.info("Mock: consultando produto com id {}", produtoId);
         ProdutoDTO produto = new ProdutoDTO();
         produto.setId(produtoId);
@@ -36,19 +36,19 @@ public class ServicoExternoMockAdapter {
         return produto;
     }
 
-    public boolean reservarEstoque(Long produtoId, Integer quantidade) {
+    public boolean reservarEstoque(String produtoId, Integer quantidade) {
         log.info("Mock: reservando estoque para produto {} quantidade {}", produtoId, quantidade);
         // Simula sucesso na reserva de estoque
         return true;
     }
 
-    public boolean baixarEstoque(Long produtoId, Integer quantidade) {
+    public boolean baixarEstoque(String produtoId, Integer quantidade) {
         log.info("Mock: baixando estoque para produto {} quantidade {}", produtoId, quantidade);
         // Simula sucesso na baixa de estoque
         return true;
     }
 
-    public void estornarEstoque(Long produtoId, Integer quantidade) {
+    public void estornarEstoque(String produtoId, Integer quantidade) {
         log.info("Mock: estornando estoque para produto {} quantidade {}", produtoId, quantidade);
         // Simula estorno de estoque
     }
@@ -75,7 +75,7 @@ public class ServicoExternoMockAdapter {
     @Setter
     @ToString
     public static class ClienteDTO {
-        private Long id;
+        private String id;
         private String nome;
         private String cpf;
         private String dataNascimento;
@@ -86,7 +86,7 @@ public class ServicoExternoMockAdapter {
     @Setter
     @ToString
     public static class ProdutoDTO {
-        private Long id;
+        private String id;
         private String nome;
         private String sku;
         private Double preco;

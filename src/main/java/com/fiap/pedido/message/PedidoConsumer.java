@@ -12,8 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
-
 /**
  * Consumer Kafka para processar pedidos recebidos do tópico 'novo-pedido'.
  */
@@ -29,11 +27,10 @@ public class PedidoConsumer {
     public void consumirPedido(PedidoRequestDTO pedidoRequestDTO) {
         log.info("Recebido pedido do Kafka: {}", pedidoRequestDTO);
         try {
-            // Verifica para evitar NullPointerException ao acessar dadosPagamento
+            // Verificação para evitar NullPointerException ao acessar dadosPagamento
             if (pedidoRequestDTO.getDadosPagamento() == null) {
                 log.error("Dados de pagamento estão nulos no pedido recebido: {}", pedidoRequestDTO);
                 // Opcional: atualizar status do pedido para indicar erro ou rejeição
-                pedidoUseCase.atualizarStatus(pedidoRequestDTO.getId(), "REJEITADO_DADOS_PAGAMENTO_NULOS");
                 return; // interrompe o processamento deste pedido
             }
 
@@ -41,29 +38,20 @@ public class PedidoConsumer {
             var pedidoResponse = pedidoUseCase.criarPedido(pedidoRequestDTO);
             log.info("Pedido criado com sucesso: {}", pedidoResponse);
 
-            // 2. Consultar cliente
-            ClienteDTO cliente = servicoExternoAdapter.consultarCliente(pedidoRequestDTO.getClienteId());
-            if (cliente == null) {
-                log.error("Cliente não encontrado para clienteId: {}", pedidoRequestDTO.getClienteId());
-                pedidoUseCase.atualizarStatus(pedidoResponse.getId(), "FECHADO_CLIENTE_NAO_ENCONTRADO");
-                return;
-            }
+            // 2. Consultar cliente (agora usando String clienteId)
+            ClienteDTO cliente = servicoExternoAdapter.consultarCliente(String.valueOf(pedidoRequestDTO.getClienteId()));
             log.info("Cliente consultado: {}", cliente);
 
             // 3. Para cada item, consultar produto e reservar/baixar estoque
             double valorTotal = 0.0;
             for (ItemPedidoRequestDTO item : pedidoRequestDTO.getItens()) {
                 ProdutoDTO produto = servicoExternoAdapter.consultarProduto(item.getProdutoId());
-                if (produto == null) {
-                    log.error("Produto não encontrado para produtoId: {}", item.getProdutoId());
-                    pedidoUseCase.atualizarStatus(pedidoResponse.getId(), "FECHADO_PRODUTO_NAO_ENCONTRADO");
-                    return;
-                }
                 log.info("Produto consultado: {}", produto);
 
                 boolean estoqueReservado = servicoExternoAdapter.reservarEstoque(item.getProdutoId(), item.getQuantidade());
                 if (!estoqueReservado) {
                     log.error("Estoque insuficiente para produto: {}", item.getProdutoId());
+                    // Atualizar status do pedido para FECHADO_SEM_ESTOQUE
                     pedidoUseCase.atualizarStatus(pedidoResponse.getId(), "FECHADO_SEM_ESTOQUE");
                     return;
                 }
@@ -73,12 +61,13 @@ public class PedidoConsumer {
             // 4. Processar pagamento
             StatusPagamentoDTO statusPagamento = servicoExternoAdapter.processarPagamento(
                     pedidoRequestDTO.getDadosPagamento().getNumeroCartao(), valorTotal);
-            if (statusPagamento == null || !"APROVADO".equalsIgnoreCase(statusPagamento.getStatus())) {
+            if (!"APROVADO".equalsIgnoreCase(statusPagamento.getStatus())) {
                 log.error("Pagamento não aprovado para pedido: {}", pedidoRequestDTO);
                 // Estornar estoque reservado
                 for (ItemPedidoRequestDTO item : pedidoRequestDTO.getItens()) {
                     servicoExternoAdapter.estornarEstoque(item.getProdutoId(), item.getQuantidade());
                 }
+                // Atualizar status do pedido para FECHADO_SEM_CREDITO
                 pedidoUseCase.atualizarStatus(pedidoResponse.getId(), "FECHADO_SEM_CREDITO");
                 return;
             }
@@ -94,6 +83,7 @@ public class PedidoConsumer {
                     for (ItemPedidoRequestDTO i : pedidoRequestDTO.getItens()) {
                         servicoExternoAdapter.estornarEstoque(i.getProdutoId(), i.getQuantidade());
                     }
+                    // Atualizar status do pedido para FECHADO_SEM_ESTOQUE
                     pedidoUseCase.atualizarStatus(pedidoResponse.getId(), "FECHADO_SEM_ESTOQUE");
                     return;
                 }
