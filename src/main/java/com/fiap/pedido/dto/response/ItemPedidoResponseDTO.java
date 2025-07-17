@@ -9,7 +9,7 @@ import lombok.*;
 @AllArgsConstructor
 public class ItemPedidoResponseDTO {
 
-    private Long produtoId;
+    private String produtoId;
     private Integer quantidade;
     private Double precoUnitario;
 }

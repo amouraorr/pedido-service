@@ -17,7 +17,9 @@ public class ItemPedidoEntity {
     private Long id;
 
     private String produtoId;
+
     private Integer quantidade;
+
     private Double precoUnitario;
 
     @ManyToOne(fetch = FetchType.LAZY)
