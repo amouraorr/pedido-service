@@ -10,7 +10,6 @@ import com.fiap.pedido.entity.ItemPedidoEntity;
 import com.fiap.pedido.entity.PedidoEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.factory.Mappers;
 
 import java.util.List;
 
@@ -25,7 +24,6 @@ public interface PedidoMapper {
 
     Pedido toDomain(PedidoEntity entity);
 
-    // Mapear lista de itens
     List<ItemPedido> toDomainItens(List<ItemPedidoRequestDTO> itens);
 
     List<ItemPedidoResponseDTO> toResponseItens(List<ItemPedido> itens);
@@ -33,4 +31,13 @@ public interface PedidoMapper {
     List<ItemPedidoEntity> toEntityItens(List<ItemPedido> itens);
 
     List<ItemPedido> toDomainItensEntity(List<ItemPedidoEntity> itens);
+
+    @Mapping(target = "produtoId", source = "produtoId")
+    ItemPedido itemPedidoRequestDTOToItemPedido(ItemPedidoRequestDTO dto);
+
+    @Mapping(target = "produtoId", source = "produtoId")
+    ItemPedidoEntity itemPedidoToItemPedidoEntity(ItemPedido itemPedido);
+
+    @Mapping(target = "produtoId", source = "produtoId")
+    ItemPedido itemPedidoEntityToItemPedido(ItemPedidoEntity entity);
 }

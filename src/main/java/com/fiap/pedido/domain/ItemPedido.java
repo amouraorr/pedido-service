@@ -8,7 +8,8 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ItemPedido {
-    private Long produtoId;
+
+    private String produtoId;
     private Integer quantidade;
     private Double precoUnitario;
 }
