@@ -39,7 +39,7 @@ public class PedidoRepositoryAdapter implements PedidoRepositoryPort {
     public Optional<Pedido> findById(Long id) {
         try {
             log.debug("Buscando pedido por id: {}", id);
-            Optional<Pedido> pedido = pedidoRepository.findById(id)
+            Optional<Pedido> pedido = pedidoRepository.findByIdWithItens(id)
                     .map(pedidoMapper::toDomain);
             if (pedido.isPresent()) {
                 log.debug("Pedido encontrado: {}", pedido.get());
