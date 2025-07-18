@@ -9,4 +9,5 @@ public interface PedidoRepositoryPort {
     Pedido save(Pedido pedido);
     Optional<Pedido> findById(Long id);
     List<Pedido> findAll();
+    Pedido atualizarStatus(Long id, String status);
 }

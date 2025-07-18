@@ -74,11 +74,12 @@ public class ServicoExternoMockAdapter {
         }
     }
 
-    public void estornarEstoque(String produtoId, Integer quantidade) {
+    public boolean estornarEstoque(String produtoId, Integer quantidade) {
         log.info("Mock: estornando estoque para produto {} quantidade {}", produtoId, quantidade);
         Integer disponivel = estoqueDisponivel.getOrDefault(produtoId, 0);
         estoqueDisponivel.put(produtoId, disponivel + quantidade);
         log.info("Estoque estornado para produto {}. Quantidade: {}. Estoque atualizado: {}", produtoId, quantidade, estoqueDisponivel.get(produtoId));
+        return true;
     }
 
     public StatusPagamentoDTO processarPagamento(String numeroCartao, Double valorTotal) {

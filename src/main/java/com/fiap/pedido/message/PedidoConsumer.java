@@ -6,6 +6,7 @@ import com.fiap.pedido.adapter.ServicoExternoMockAdapter.ProdutoDTO;
 import com.fiap.pedido.adapter.ServicoExternoMockAdapter.StatusPagamentoDTO;
 import com.fiap.pedido.dto.request.ItemPedidoRequestDTO;
 import com.fiap.pedido.dto.request.PedidoRequestDTO;
+import com.fiap.pedido.dto.response.PedidoResponseDTO;
 import com.fiap.pedido.usecase.service.PedidoUseCaseImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +43,7 @@ public class PedidoConsumer {
             ClienteDTO cliente = servicoExternoAdapter.consultarCliente(String.valueOf(pedidoRequestDTO.getClienteId()));
             log.info("Cliente consultado: {}", cliente);
 
-            // 3. Para cada item, consultar produto e reservar/baixar estoque
+            // 3. Para cada item, consultar produto e reservar estoque
             double valorTotal = 0.0;
             for (ItemPedidoRequestDTO item : pedidoRequestDTO.getItens()) {
                 ProdutoDTO produto = servicoExternoAdapter.consultarProduto(item.getProdutoId());
@@ -61,15 +62,23 @@ public class PedidoConsumer {
             // 4. Processar pagamento
             StatusPagamentoDTO statusPagamento = servicoExternoAdapter.processarPagamento(
                     pedidoRequestDTO.getDadosPagamento().getNumeroCartao(), valorTotal);
+
+            log.info("Status do pagamento recebido: {}", statusPagamento.getStatus());
+
             if (!"APROVADO".equalsIgnoreCase(statusPagamento.getStatus())) {
-                log.error("Pagamento não aprovado para pedido: {}", pedidoRequestDTO);
+                log.error("Pagamento recusado para pedido: {}", pedidoRequestDTO);
+
                 // Estornar estoque reservado
                 for (ItemPedidoRequestDTO item : pedidoRequestDTO.getItens()) {
-                    servicoExternoAdapter.estornarEstoque(item.getProdutoId(), item.getQuantidade());
+                    boolean estornoOk = servicoExternoAdapter.estornarEstoque(item.getProdutoId(), item.getQuantidade());
+                    log.info("Estorno de estoque para produto {}: {}", item.getProdutoId(), estornoOk ? "SUCESSO" : "FALHA");
                 }
+
                 // Atualizar status do pedido para FECHADO_SEM_CREDITO
-                pedidoUseCase.atualizarStatus(pedidoResponse.getId(), "FECHADO_SEM_CREDITO");
-                return;
+                PedidoResponseDTO pedidoAtualizado = pedidoUseCase.atualizarStatus(pedidoResponse.getId(), "FECHADO_SEM_CREDITO");
+                log.info("Status do pedido atualizado para: {}", pedidoAtualizado.getStatus());
+
+                return; // Interrompe o processamento para evitar sobrescrita do status
             }
 
             // 5. Baixar estoque efetivamente após pagamento aprovado

@@ -68,4 +68,9 @@ public class PedidoRepositoryAdapter implements PedidoRepositoryPort {
             throw e;
         }
     }
+
+    @Override
+    public Pedido atualizarStatus(Long id, String status) {
+        return null;
+    }
 }
