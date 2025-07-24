@@ -2,6 +2,7 @@ package com.fiap.pedido.adapter;
 
 import com.fiap.pedido.domain.Pedido;
 import com.fiap.pedido.entity.PedidoEntity;
+import com.fiap.pedido.enuns.StatusPedido;
 import com.fiap.pedido.mapper.PedidoMapper;
 import com.fiap.pedido.pots.PedidoRepositoryPort;
 import com.fiap.pedido.repository.PedidoRepository;
@@ -71,6 +72,25 @@ public class PedidoRepositoryAdapter implements PedidoRepositoryPort {
 
     @Override
     public Pedido atualizarStatus(Long id, String status) {
-        return null;
+        try {
+            log.debug("Atualizando status do pedido id: {} para status: {}", id, status);
+            Optional<PedidoEntity> optionalEntity = pedidoRepository.findByIdWithItens(id);
+            if (optionalEntity.isEmpty()) {
+                log.warn("Pedido não encontrado para id: {}", id);
+                throw new RuntimeException("Pedido não encontrado");
+            }
+            PedidoEntity entity = optionalEntity.get();
+            entity.setStatus(StatusPedido.valueOf(status));
+            PedidoEntity saved = pedidoRepository.save(entity);
+            Pedido result = pedidoMapper.toDomain(saved);
+            log.debug("Status do pedido atualizado com sucesso: {}", result);
+            return result;
+        } catch (IllegalArgumentException e) {
+            log.error("Status inválido informado: {}", status, e);
+            throw new RuntimeException("Status inválido: " + status, e);
+        } catch (Exception e) {
+            log.error("Erro ao atualizar status do pedido id: {}", id, e);
+            throw e;
+        }
     }
 }
