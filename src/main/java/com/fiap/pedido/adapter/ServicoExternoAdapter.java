@@ -1,5 +1,6 @@
 package com.fiap.pedido.adapter;
 
+import com.fiap.pedido.dto.StatusPagamentoDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -37,6 +38,21 @@ public class ServicoExternoAdapter {
 
     public boolean baixarEstoque(String produtoId, int quantidade) {
         log.info("Mock baixar estoque produtoId: {}, quantidade: {}", produtoId, quantidade);
+        return true;
+    }
+
+    // ADICIONE ESTE MÉTODO:
+    public StatusPagamentoDTO processarPagamento(String numeroCartao, double valor) {
+        log.info("Mock processar pagamento para cartão: {}, valor: {}", numeroCartao, valor);
+        StatusPagamentoDTO dto = new StatusPagamentoDTO();
+        dto.setPagamentoId("MOCK123");
+        dto.setStatus("APROVADO"); // ou "RECUSADO" para simular falha
+        return dto;
+    }
+
+    // Opcional: mock para estornar pagamento
+    public boolean estornarPagamento(String pagamentoId) {
+        log.info("Mock estornar pagamento para pagamentoId: {}", pagamentoId);
         return true;
     }
 }
