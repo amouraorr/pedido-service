@@ -1,5 +1,6 @@
 package com.fiap.pedido.usecase.service;
 
+import com.fiap.pedido.adapter.EstoqueServiceClient;
 import com.fiap.pedido.domain.Pedido;
 import com.fiap.pedido.dto.request.PedidoRequestDTO;
 import com.fiap.pedido.dto.response.PedidoResponseDTO;
@@ -20,7 +21,8 @@ public class PedidoUseCaseImpl implements PedidoUseCase {
 
     private final PedidoRepositoryPort pedidoRepository;
     private final PedidoMapper pedidoMapper;
-
+    private final EstoqueServiceClient estoqueServiceClient;
+    
     @Override
     public PedidoResponseDTO criarPedido(PedidoRequestDTO pedidoRequestDTO) {
         try {

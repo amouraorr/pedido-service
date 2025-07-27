@@ -4,7 +4,6 @@ import com.fiap.pedido.dto.ClienteDTO;
 import com.fiap.pedido.dto.ProdutoDTO;
 import com.fiap.pedido.dto.StatusPagamentoDTO;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -26,7 +25,6 @@ public class ServicoExternoMockAdapter {
         estoqueDisponivel.put("SKU001", 2);
         estoqueDisponivel.put("SKU002", 2);
         estoqueDisponivel.put("SKU003", 2);
-
     }
 
     public ClienteDTO consultarCliente(String clienteId) {
