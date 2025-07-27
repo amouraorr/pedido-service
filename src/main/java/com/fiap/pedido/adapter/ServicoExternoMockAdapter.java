@@ -1,9 +1,10 @@
 package com.fiap.pedido.adapter;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import com.fiap.pedido.dto.ClienteDTO;
+import com.fiap.pedido.dto.ProdutoDTO;
+import com.fiap.pedido.dto.StatusPagamentoDTO;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -25,7 +26,7 @@ public class ServicoExternoMockAdapter {
         estoqueDisponivel.put("SKU001", 2);
         estoqueDisponivel.put("SKU002", 2);
         estoqueDisponivel.put("SKU003", 2);
-       
+
     }
 
     public ClienteDTO consultarCliente(String clienteId) {
@@ -85,7 +86,7 @@ public class ServicoExternoMockAdapter {
     public StatusPagamentoDTO processarPagamento(String numeroCartao, Double valorTotal) {
         log.info("Mock: processando pagamento com cartão {} e valor {}", numeroCartao, valorTotal);
         StatusPagamentoDTO status = new StatusPagamentoDTO();
-        status.setPagamentoId(UUID.randomUUID());
+        status.setPagamentoId(UUID.randomUUID().toString());
 
         // Recusa se número do cartão for "0000000000000000"
         if ("0000000000000000".equals(numeroCartao)) {
@@ -98,37 +99,8 @@ public class ServicoExternoMockAdapter {
         return status;
     }
 
-    public void estornarPagamento(UUID pagamentoId) {
+    public void estornarPagamento(String pagamentoId) {
         log.info("Mock: estornando pagamento com id {}", pagamentoId);
         // Simula estorno de pagamento
-    }
-
-    @Getter
-    @Setter
-    @ToString
-    public static class ClienteDTO {
-        private String id;
-        private String nome;
-        private String cpf;
-        private String dataNascimento;
-        private String endereco;
-    }
-
-    @Getter
-    @Setter
-    @ToString
-    public static class ProdutoDTO {
-        private String id;
-        private String nome;
-        private String sku;
-        private Double preco;
-    }
-
-    @Getter
-    @Setter
-    @ToString
-    public static class StatusPagamentoDTO {
-        private UUID pagamentoId;
-        private String status;
     }
 }

@@ -1,5 +1,7 @@
 package com.fiap.pedido.adapter;
 
+import com.fiap.pedido.dto.ClienteDTO;
+import com.fiap.pedido.dto.ProdutoDTO;
 import com.fiap.pedido.dto.StatusPagamentoDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -8,20 +10,23 @@ import org.springframework.stereotype.Component;
 @Component
 public class ServicoExternoAdapter {
 
-    public ServicoExternoMockAdapter.ClienteDTO consultarCliente(String clienteId) {
+    public ClienteDTO consultarCliente(String clienteId) {
         log.info("Mock consultar cliente id: {}", clienteId);
-        // Mock returning a client DTO
-        ServicoExternoMockAdapter.ClienteDTO cliente = new ServicoExternoMockAdapter.ClienteDTO();
-        cliente.setId(String.valueOf(Long.valueOf(clienteId)));
+        ClienteDTO cliente = new ClienteDTO();
+        cliente.setId(clienteId);
         cliente.setNome("Cliente Mock");
+        cliente.setCpf("123.456.789-00");
+        cliente.setDataNascimento("1990-01-01");
+        cliente.setEndereco("Rua Mock, 123, 00000-000");
         return cliente;
     }
 
-    public ServicoExternoMockAdapter.ProdutoDTO consultarProduto(String produtoId) {
+    public ProdutoDTO consultarProduto(String produtoId) {
         log.info("Mock consultar produto id: {}", produtoId);
-        ServicoExternoMockAdapter.ProdutoDTO produto = new ServicoExternoMockAdapter.ProdutoDTO();
-        produto.setId(String.valueOf(Long.valueOf(produtoId)));
+        ProdutoDTO produto = new ProdutoDTO();
+        produto.setId(produtoId);
         produto.setNome("Produto Mock");
+        produto.setSku(produtoId);
         produto.setPreco(100.0);
         return produto;
     }
@@ -41,16 +46,14 @@ public class ServicoExternoAdapter {
         return true;
     }
 
-    // ADICIONE ESTE MÉTODO:
     public StatusPagamentoDTO processarPagamento(String numeroCartao, double valor) {
         log.info("Mock processar pagamento para cartão: {}, valor: {}", numeroCartao, valor);
         StatusPagamentoDTO dto = new StatusPagamentoDTO();
         dto.setPagamentoId("MOCK123");
-        dto.setStatus("APROVADO"); // ou "RECUSADO" para simular falha
+        dto.setStatus("APROVADO");
         return dto;
     }
 
-    // Opcional: mock para estornar pagamento
     public boolean estornarPagamento(String pagamentoId) {
         log.info("Mock estornar pagamento para pagamentoId: {}", pagamentoId);
         return true;

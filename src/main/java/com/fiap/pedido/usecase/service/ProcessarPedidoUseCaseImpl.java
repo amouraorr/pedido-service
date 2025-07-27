@@ -1,13 +1,17 @@
 package com.fiap.pedido.usecase.service;
 
-import com.fiap.pedido.dto.StatusPagamentoDTO;
-import com.fiap.pedido.dto.request.PedidoRequestDTO;
-import com.fiap.pedido.dto.request.ItemPedidoRequestDTO;
-import com.fiap.pedido.dto.response.PedidoResponseDTO;
 import com.fiap.pedido.adapter.ServicoExternoAdapter;
+import com.fiap.pedido.dto.request.PagamentoRequestDTO;
+import com.fiap.pedido.dto.request.ItemPedidoRequestDTO;
+import com.fiap.pedido.dto.request.PedidoRequestDTO;
+import com.fiap.pedido.dto.response.PagamentoResponseDTO;
+import com.fiap.pedido.dto.response.PedidoResponseDTO;
+import com.fiap.pedido.gateway.PagamentoServiceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
 
 @Slf4j
 @Component
@@ -16,6 +20,7 @@ public class ProcessarPedidoUseCaseImpl implements ProcessarPedidoUseCase {
 
     private final PedidoUseCase pedidoUseCase;
     private final ServicoExternoAdapter servicoExternoAdapter;
+    private final PagamentoServiceClient pagamentoServiceClient;
 
     @Override
     public void processarPedido(PedidoRequestDTO pedidoRequestDTO) {
@@ -45,13 +50,18 @@ public class ProcessarPedidoUseCaseImpl implements ProcessarPedidoUseCase {
                     .mapToDouble(item -> servicoExternoAdapter.consultarProduto(item.getProdutoId()).getPreco() * item.getQuantidade())
                     .sum();
 
-            // 4. Processar pagamento
-            StatusPagamentoDTO statusPagamento = servicoExternoAdapter.processarPagamento(
-                    pedidoRequestDTO.getDadosPagamento().getNumeroCartao(), valorTotal);
+            // 4. Processar pagamento via Feign Client
+            PagamentoRequestDTO pagamentoRequest = new PagamentoRequestDTO();
+            pagamentoRequest.setPedidoId(pedidoResponse.getId());
+            pagamentoRequest.setValor(BigDecimal.valueOf(valorTotal));
+            pagamentoRequest.setMetodoPagamento(pedidoRequestDTO.getDadosPagamento().getMetodoPagamento());
+            pagamentoRequest.setNumeroCartao(pedidoRequestDTO.getDadosPagamento().getNumeroCartao());
 
-            log.info("Status do pagamento recebido: {}", statusPagamento.getStatus());
+            PagamentoResponseDTO pagamentoResponse = pagamentoServiceClient.processarPagamento(pagamentoRequest);
 
-            if (!"APROVADO".equalsIgnoreCase(statusPagamento.getStatus())) {
+            log.info("Status do pagamento recebido: {}", pagamentoResponse.getStatus());
+
+            if (!"APROVADO".equalsIgnoreCase(pagamentoResponse.getStatus())) {
                 log.error("Pagamento recusado para pedido: {}", pedidoRequestDTO);
 
                 // Estornar estoque reservado
@@ -71,7 +81,7 @@ public class ProcessarPedidoUseCaseImpl implements ProcessarPedidoUseCase {
                 if (!estoqueBaixado) {
                     log.error("Falha ao baixar estoque para produto: {}", item.getProdutoId());
                     // Estornar pagamento
-                    servicoExternoAdapter.estornarPagamento(statusPagamento.getPagamentoId());
+                    servicoExternoAdapter.estornarPagamento(pagamentoResponse.getPagamentoId());
                     // Estornar estoque reservado
                     for (ItemPedidoRequestDTO i : pedidoRequestDTO.getItens()) {
                         servicoExternoAdapter.estornarEstoque(i.getProdutoId(), i.getQuantidade());

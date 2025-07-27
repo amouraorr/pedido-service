@@ -1,9 +1,9 @@
 package com.fiap.pedido.message;
 
 import com.fiap.pedido.adapter.ServicoExternoMockAdapter;
-import com.fiap.pedido.adapter.ServicoExternoMockAdapter.ClienteDTO;
-import com.fiap.pedido.adapter.ServicoExternoMockAdapter.ProdutoDTO;
-import com.fiap.pedido.adapter.ServicoExternoMockAdapter.StatusPagamentoDTO;
+import com.fiap.pedido.dto.ClienteDTO;
+import com.fiap.pedido.dto.ProdutoDTO;
+import com.fiap.pedido.dto.StatusPagamentoDTO;
 import com.fiap.pedido.dto.request.ItemPedidoRequestDTO;
 import com.fiap.pedido.dto.request.PedidoRequestDTO;
 import com.fiap.pedido.dto.response.PedidoResponseDTO;

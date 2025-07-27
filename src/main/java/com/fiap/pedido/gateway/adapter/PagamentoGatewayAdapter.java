@@ -13,13 +13,11 @@ import java.util.UUID;
 @Component
 public class PagamentoGatewayAdapter implements PagamentoGateway {
 
-    // Mock implementation simulating external payment processing
     @Override
     public StatusPagamentoDTO processarPagamento(String numeroCartao, Double valor) {
         log.info("Processando pagamento mock para cartão: {} valor: {}", numeroCartao, valor);
 
-        // Simulate payment approved or declined randomly or by some logic
-        boolean aprovado = valor <= 1000; // example rule: payments <= 1000 approved
+        boolean aprovado = valor <= 1000;
 
         StatusPagamentoDTO status = new StatusPagamentoDTO();
         status.setPagamentoId(UUID.randomUUID().toString());
@@ -33,6 +31,6 @@ public class PagamentoGatewayAdapter implements PagamentoGateway {
     @Override
     public void estornarPagamento(String pagamentoId) {
         log.info("Estornando pagamento mock com id: {}", pagamentoId);
-        // Mock estorno logic
+
     }
 }

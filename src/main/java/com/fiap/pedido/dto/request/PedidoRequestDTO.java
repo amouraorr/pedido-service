@@ -16,14 +16,6 @@ public class PedidoRequestDTO {
     private List<ItemPedidoRequestDTO> itens;
     private String status;
     private LocalDateTime dataCriacao;
-    private DadosPagamentoDTO dadosPagamento;
+    private DadosPagamentoRequestDTO dadosPagamento;
 
-    @Getter
-    @Setter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class DadosPagamentoDTO {
-        private String numeroCartao;
-    }
 }
