@@ -25,7 +25,6 @@ public class KafkaConfig {
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "pedido-service");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class.getName());
-        // Permite deserializar DTOs de qualquer pacote (para testes)
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
         props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, PedidoRequestDTO.class);
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
