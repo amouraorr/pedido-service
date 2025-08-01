@@ -10,18 +10,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Mock adapter para simular chamadas REST a microsserviços externos.
- */
 @Slf4j
 @Component
 public class ServicoExternoMockAdapter {
 
-    // Estoque simulado por produtoId
     private final Map<String, Integer> estoqueDisponivel = new HashMap<>();
 
     public ServicoExternoMockAdapter() {
-        // Inicializa estoque simulado para alguns produtos
         estoqueDisponivel.put("SKU001", 2);
         estoqueDisponivel.put("SKU002", 2);
         estoqueDisponivel.put("SKU003", 2);
@@ -86,7 +81,6 @@ public class ServicoExternoMockAdapter {
         StatusPagamentoDTO status = new StatusPagamentoDTO();
         status.setPagamentoId(UUID.randomUUID().toString());
 
-        // Recusa se número do cartão for "0000000000000000"
         if ("0000000000000000".equals(numeroCartao)) {
             status.setStatus("RECUSADO");
         } else if (valorTotal <= 1000) {
@@ -99,6 +93,5 @@ public class ServicoExternoMockAdapter {
 
     public void estornarPagamento(String pagamentoId) {
         log.info("Mock: estornando pagamento com id {}", pagamentoId);
-        // Simula estorno de pagamento
     }
 }

@@ -33,7 +33,7 @@ public class ServicoExternoAdapter {
 
     public boolean reservarEstoque(String produtoId, int quantidade) {
         log.info("Mock reservar estoque produtoId: {}, quantidade: {}", produtoId, quantidade);
-        return true; // Always succeed in mock
+        return true;
     }
 
     public boolean estornarEstoque(String produtoId, int quantidade) {

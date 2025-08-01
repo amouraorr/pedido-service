@@ -47,7 +47,7 @@ public class ProcessarPedidoUseCaseImpl implements ProcessarPedidoUseCase {
 
             // 3. Calcular valor total do pedido
             double valorTotal = pedidoRequestDTO.getItens().stream()
-                    .mapToDouble(item -> item.getQuantidade() * 100.0) // Ajuste: buscar preço real se necessário
+                    .mapToDouble(item -> item.getQuantidade() * 100.0)
                     .sum();
 
             // 4. Processar pagamento via Feign Client

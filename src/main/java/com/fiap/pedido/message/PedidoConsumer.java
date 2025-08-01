@@ -13,9 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
-/**
- * Consumer Kafka para processar pedidos recebidos do tópico 'novo-pedido'.
- */
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -104,7 +102,6 @@ public class PedidoConsumer {
 
         } catch (Exception e) {
             log.error("Erro ao processar pedido recebido do Kafka: {}", pedidoRequestDTO, e);
-            // TODO: lógica de retry ou envio para dead letter queue
         }
     }
 }
