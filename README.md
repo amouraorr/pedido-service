@@ -141,29 +141,28 @@ Antes de executar o microsserviço, certifique-se de ter instalado:
 - PostgreSQL rodando localmente ou via container
 - Kafka rodando localmente ou via container
 
-## Como Executar o Projeto
+### Passos para Executar o Docker Compose
 
-1. Clone o repositório:
-   ```bash
-   git clone <url-do-repositorio>
-   ```
-2. Navegue até o diretório do microsserviço pedido-service:
-   ```bash
-   cd pedido-service
-   ```
-3. Compile e empacote o projeto com Maven:
-   ```bash
-   mvn clean package -DskipTests
-   ```
-4. Configure o banco de dados PostgreSQL conforme `application.properties`.
-5. Execute a aplicação localmente:
-   ```bash
-   mvn spring-boot:run
-   ```
-6. Ou utilize Docker Compose para subir o serviço, banco e Kafka:
+1. Certifique-se de que o Docker e o Docker Compose estejam instalados e rodando na sua máquina.
+2. No terminal, navegue até o diretório onde está localizado o arquivo `docker-compose.yml`.
+3. Execute o seguinte comando para iniciar os contêineres:
    ```bash
    docker compose up
    ```
+4. A aplicação estará disponível em `http://localhost:8084` e o Swagger em `http://localhost:8084/swagger-ui/index.html#/`.
+5. O banco de dados PostgreSQL estará rodando em `http://localhost:5432`.
+6. A ferramenta Adminer estará disponível para visualização do banco de dados no endereço `http://localhost:8088`.
+
+### Passos para Conectar no Banco de Dados com o Adminer
+
+1. Acesse o endereço `http://localhost:8088`.
+2. Em Sistema, escolha PostgreSQL.
+3. Em Servidor, preencha o nome do serviço do Postgres do Docker Compose (postgres).
+4. Em Usuário, preencha postgres.
+5. Em Senha, preencha postgres.
+6. Em Base de dados, preencha com postgres.
+7. Clique em Entrar.
+
 
 ## Endpoints Principais
 
