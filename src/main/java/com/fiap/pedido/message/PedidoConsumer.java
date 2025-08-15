@@ -1,6 +1,7 @@
 package com.fiap.pedido.message;
 
 import com.fiap.pedido.adapter.ServicoExternoMockAdapter;
+// CORREÇÃO: Removidas importações incorretas de classes internas do adapter
 import com.fiap.pedido.dto.ClienteDTO;
 import com.fiap.pedido.dto.ProdutoDTO;
 import com.fiap.pedido.dto.StatusPagamentoDTO;
@@ -13,7 +14,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
-
+/**
+ * Consumer Kafka para processar pedidos recebidos do tópico 'novo-pedido'.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -24,70 +27,113 @@ public class PedidoConsumer {
 
     @KafkaListener(topics = "novo-pedido", groupId = "pedido-service", containerFactory = "pedidoKafkaListenerContainerFactory")
     public void consumirPedido(PedidoRequestDTO pedidoRequestDTO) {
-        log.info("Recebido pedido do Kafka: {}", pedidoRequestDTO);
+        log.info("=== INICIANDO PROCESSAMENTO DO PEDIDO KAFKA: {} ===", pedidoRequestDTO);
+
         try {
-            if (pedidoRequestDTO.getDadosPagamento() == null) {
-                log.error("Dados de pagamento estão nulos no pedido recebido: {}", pedidoRequestDTO);
+
+            if (pedidoRequestDTO.getDadosPagamento() == null ||
+                    pedidoRequestDTO.getDadosPagamento().getNumeroCartao() == null) {
+                log.error("❌ ERRO: Dados de pagamento inválidos no pedido: {}", pedidoRequestDTO);
                 return;
             }
 
+            log.info("📝 ETAPA 1: Criando pedido no banco com status ABERTO");
             var pedidoResponse = pedidoUseCase.criarPedido(pedidoRequestDTO);
-            log.info("Pedido criado com sucesso: {}", pedidoResponse);
+            log.info("✅ Pedido criado com ID: {} e status: {}", pedidoResponse.getId(), pedidoResponse.getStatus());
 
+            log.info("📝 ETAPA 2: Consultando cliente ID: {}", pedidoRequestDTO.getClienteId());
             ClienteDTO cliente = servicoExternoAdapter.consultarCliente(String.valueOf(pedidoRequestDTO.getClienteId()));
-            log.info("Cliente consultado: {}", cliente);
+            log.info("✅ Cliente consultado: {}", cliente.getNome());
 
+            log.info("📝 ETAPA 3: Verificando e reservando estoque");
             double valorTotal = 0.0;
-            for (ItemPedidoRequestDTO item : pedidoRequestDTO.getItens()) {
-                ProdutoDTO produto = servicoExternoAdapter.consultarProduto(item.getProdutoId());
-                log.info("Produto consultado: {}", produto);
+            boolean todoEstoqueReservado = true;
 
+            for (ItemPedidoRequestDTO item : pedidoRequestDTO.getItens()) {
+                log.info("🔍 Consultando produto: {}", item.getProdutoId());
+                ProdutoDTO produto = servicoExternoAdapter.consultarProduto(item.getProdutoId());
+                log.info("📦 Produto encontrado: {} - Preço: {}", produto.getNome(), produto.getPreco());
+
+                log.info("📋 Reservando estoque - Produto: {} Quantidade: {}", item.getProdutoId(), item.getQuantidade());
                 boolean estoqueReservado = servicoExternoAdapter.reservarEstoque(item.getProdutoId(), item.getQuantidade());
+
                 if (!estoqueReservado) {
-                    log.error("Estoque insuficiente para produto: {}", item.getProdutoId());
-                    pedidoUseCase.atualizarStatus(pedidoResponse.getId(), "FECHADO_SEM_ESTOQUE");
-                    return;
+                    log.error("❌ ESTOQUE INSUFICIENTE para produto: {}", item.getProdutoId());
+                    todoEstoqueReservado = false;
+                    break;
                 }
+
                 valorTotal += produto.getPreco() * item.getQuantidade();
+                log.info("💰 Valor acumulado: {}", valorTotal);
             }
+
+            if (!todoEstoqueReservado) {
+                log.info("📝 ATUALIZANDO STATUS PARA: FECHADO_SEM_ESTOQUE");
+                PedidoResponseDTO pedidoAtualizado = pedidoUseCase.atualizarStatus(pedidoResponse.getId(), "FECHADO_SEM_ESTOQUE");
+                log.info("✅ Status atualizado para: {}", pedidoAtualizado.getStatus());
+                return;
+            }
+
+            log.info("📝 ETAPA 4: Processando pagamento - Cartão: {} Valor: {}",
+                    pedidoRequestDTO.getDadosPagamento().getNumeroCartao(), valorTotal);
 
             StatusPagamentoDTO statusPagamento = servicoExternoAdapter.processarPagamento(
                     pedidoRequestDTO.getDadosPagamento().getNumeroCartao(), valorTotal);
 
-            log.info("Status do pagamento recebido: {}", statusPagamento.getStatus());
+            log.info("💳 Status do pagamento recebido: {}", statusPagamento.getStatus());
 
             if (!"APROVADO".equalsIgnoreCase(statusPagamento.getStatus())) {
-                log.error("Pagamento recusado para pedido: {}", pedidoRequestDTO);
+                log.error("❌ PAGAMENTO RECUSADO para pedido ID: {}", pedidoResponse.getId());
 
+                log.info("🔄 Iniciando rollback do estoque");
                 for (ItemPedidoRequestDTO item : pedidoRequestDTO.getItens()) {
                     boolean estornoOk = servicoExternoAdapter.estornarEstoque(item.getProdutoId(), item.getQuantidade());
-                    log.info("Estorno de estoque para produto {}: {}", item.getProdutoId(), estornoOk ? "SUCESSO" : "FALHA");
+                    log.info("🔄 Estorno estoque produto {}: {}", item.getProdutoId(), estornoOk ? "✅ SUCESSO" : "❌ FALHA");
                 }
 
+                log.info("📝 ATUALIZANDO STATUS PARA: FECHADO_SEM_CREDITO");
                 PedidoResponseDTO pedidoAtualizado = pedidoUseCase.atualizarStatus(pedidoResponse.getId(), "FECHADO_SEM_CREDITO");
-                log.info("Status do pedido atualizado para: {}", pedidoAtualizado.getStatus());
-
+                log.info("✅ Status atualizado para: {}", pedidoAtualizado.getStatus());
                 return;
             }
 
+            log.info("📝 ETAPA 5: Efetuando baixa definitiva no estoque");
+            boolean todoBaixado = true;
             for (ItemPedidoRequestDTO item : pedidoRequestDTO.getItens()) {
+                log.info("📦 Baixando estoque produto: {} quantidade: {}", item.getProdutoId(), item.getQuantidade());
                 boolean estoqueBaixado = servicoExternoAdapter.baixarEstoque(item.getProdutoId(), item.getQuantidade());
+
                 if (!estoqueBaixado) {
-                    log.error("Falha ao baixar estoque para produto: {}", item.getProdutoId());
-                    servicoExternoAdapter.estornarPagamento(statusPagamento.getPagamentoId());
-                    for (ItemPedidoRequestDTO i : pedidoRequestDTO.getItens()) {
-                        servicoExternoAdapter.estornarEstoque(i.getProdutoId(), i.getQuantidade());
-                    }
-                    pedidoUseCase.atualizarStatus(pedidoResponse.getId(), "FECHADO_SEM_ESTOQUE");
-                    return;
+                    log.error("❌ FALHA ao baixar estoque para produto: {}", item.getProdutoId());
+                    todoBaixado = false;
+                    break;
                 }
+                log.info("✅ Estoque baixado com sucesso para produto: {}", item.getProdutoId());
             }
 
-            pedidoUseCase.atualizarStatus(pedidoResponse.getId(), "FECHADO_COM_SUCESSO");
-            log.info("Pedido processado com sucesso para pedido: {}", pedidoRequestDTO);
+            if (!todoBaixado) {
+                log.error("❌ Falha na baixa de estoque - Iniciando rollback completo");
+
+                log.info("🔄 Estornando pagamento: {}", statusPagamento.getPagamentoId());
+                servicoExternoAdapter.estornarPagamento(statusPagamento.getPagamentoId());
+
+                for (ItemPedidoRequestDTO item : pedidoRequestDTO.getItens()) {
+                    servicoExternoAdapter.estornarEstoque(item.getProdutoId(), item.getQuantidade());
+                }
+
+                log.info("📝 ATUALIZANDO STATUS PARA: FECHADO_SEM_ESTOQUE");
+                pedidoUseCase.atualizarStatus(pedidoResponse.getId(), "FECHADO_SEM_ESTOQUE");
+                return;
+            }
+
+            log.info("📝 ETAPA 6: FINALIZANDO PEDIDO COM SUCESSO");
+            PedidoResponseDTO pedidoFinalizado = pedidoUseCase.atualizarStatus(pedidoResponse.getId(), "FECHADO_COM_SUCESSO");
+            log.info("🎉 === PEDIDO PROCESSADO COM SUCESSO === ID: {} Status Final: {}",
+                    pedidoFinalizado.getId(), pedidoFinalizado.getStatus());
 
         } catch (Exception e) {
-            log.error("Erro ao processar pedido recebido do Kafka: {}", pedidoRequestDTO, e);
+            log.error("💥 ERRO CRÍTICO ao processar pedido: {}", pedidoRequestDTO, e);
+            log.error("Stack trace completo:", e);
         }
     }
 }
