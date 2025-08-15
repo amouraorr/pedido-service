@@ -20,6 +20,8 @@ public interface PedidoMapper {
 
     PedidoResponseDTO toResponse(Pedido domain);
 
+    List<PedidoResponseDTO> toResponseList(List<Pedido> pedidos);
+
     PedidoEntity toEntity(Pedido domain);
 
     Pedido toDomain(PedidoEntity entity);
