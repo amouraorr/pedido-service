@@ -10,10 +10,10 @@ import com.fiap.pedido.pots.PedidoRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -21,151 +21,208 @@ import java.util.List;
 public class PedidoUseCaseImpl implements PedidoUseCase {
 
     private final PedidoRepositoryPort pedidoRepositoryPort;
-    private final PedidoMapper mapper;
+    private final PedidoMapper pedidoMapper;
 
     @Override
-    @Transactional
-    public PedidoResponseDTO criarPedido(PedidoRequestDTO pedidoRequest) {
-        log.info("🆕 Iniciando criação de pedido para cliente: {}", pedidoRequest.getClienteId());
+    public PedidoResponseDTO criarPedido(PedidoRequestDTO pedidoRequestDTO) {
+        try {
+            log.info("🆕 Iniciando criação de pedido para cliente: {}", pedidoRequestDTO.getClienteId());
 
-        // 1. Mapear e criar pedido inicial com status ABERTO
-        Pedido pedido = mapper.toDomain(pedidoRequest);
-        pedido.setStatus(StatusPedido.ABERTO);
-        pedido.setDataCriacao(LocalDateTime.now());
+            // 1. Mapear DTO para domínio
+            Pedido pedido = pedidoMapper.toDomain(pedidoRequestDTO);
+            pedido.setStatus(StatusPedido.ABERTO);
+            pedido.setDataCriacao(LocalDateTime.now());
 
-        log.info("📝 Dados do pedido mapeados - Status: {} Data: {}",
-                pedido.getStatus(), pedido.getDataCriacao());
+            log.info("📝 Dados do pedido mapeados - Status: {} Data: {}",
+                    pedido.getStatus(), pedido.getDataCriacao());
 
-        // 2. Salvar pedido inicial no banco
-        Pedido pedidoSalvo = pedidoRepositoryPort.save(pedido);
-        log.info("💾 Pedido salvo no banco - ID: {} Status: {}",
-                pedidoSalvo.getId(), pedidoSalvo.getStatus());
+            // 2. Salvar pedido inicial no banco
+            Pedido pedidoSalvo = pedidoRepositoryPort.save(pedido);
+            log.info("💾 Pedido salvo no banco - ID: {} Status: {}",
+                    pedidoSalvo.getId(), pedidoSalvo.getStatus());
 
-        // 3. Processar pedido (validações básicas)
-        Pedido pedidoProcessado = processarPedido(pedidoSalvo);
+            // 3. Processar pedido (verificar estoque e crédito)
+            Pedido pedidoProcessado = processarPedido(pedidoSalvo);
 
-        log.info("✅ Pedido processado - ID: {} Status Final: {}",
-                pedidoProcessado.getId(), pedidoProcessado.getStatus());
+            // 4. Salvar pedido processado
+            Pedido pedidoFinal = pedidoRepositoryPort.save(pedidoProcessado);
+            log.info("✅ Pedido processado - ID: {} Status Final: {}",
+                    pedidoFinal.getId(), pedidoFinal.getStatus());
 
-        return mapper.toResponse(pedidoProcessado);
+            return pedidoMapper.toResponse(pedidoFinal);
+
+        } catch (Exception e) {
+            log.error("❌ Erro ao criar pedido: {}", pedidoRequestDTO, e);
+            throw new RuntimeException("Erro ao processar pedido", e);
+        }
     }
 
-    @Override
-    public PedidoResponseDTO consultarPedido(Long id) {
-        log.info("🔍 Consultando pedido ID: {}", id);
-
-        Pedido pedido = pedidoRepositoryPort.findById(id)
-                .orElseThrow(() -> new RuntimeException("Pedido não encontrado: " + id));
-
-        log.info("✅ Pedido encontrado - ID: {} Status: {}", pedido.getId(), pedido.getStatus());
-        return mapper.toResponse(pedido);
-    }
-
-    @Override
-    public List<PedidoResponseDTO> listarPedidos() {
-        log.info("📋 Listando todos os pedidos");
-
-        List<Pedido> pedidos = pedidoRepositoryPort.findAll();
-        log.info("✅ Encontrados {} pedidos", pedidos.size());
-
-        return pedidos.stream()
-                .map(mapper::toResponse)
-                .toList();
-    }
-
-    @Override
-    public PedidoResponseDTO atualizarStatus(Long id, String status) {
-        log.info("🔄 Atualizando status do pedido ID: {} para: {}", id, status);
-
-        Pedido pedidoAtualizado = pedidoRepositoryPort.atualizarStatus(id, status);
-        log.info("✅ Status atualizado - ID: {} Novo Status: {}", id, status);
-
-        return mapper.toResponse(pedidoAtualizado);
-    }
-
-    /**
-     * Processa o pedido com validações básicas
-     * @param pedido Pedido a ser processado
-     * @return Pedido com status atualizado
-     */
     private Pedido processarPedido(Pedido pedido) {
         log.info("⚙️ Iniciando processamento do pedido ID: {}", pedido.getId());
 
         try {
-            // 1. Validar itens do pedido
-            if (!validarItensPedido(pedido)) {
-                log.warn("❌ Itens inválidos para pedido ID: {}", pedido.getId());
+            // 1. Verificar estoque
+            if (!verificarEstoque(pedido)) {
                 pedido.setStatus(StatusPedido.FECHADO_SEM_ESTOQUE);
-                return pedidoRepositoryPort.save(pedido);
+                log.warn("❌ Pedido rejeitado por falta de estoque - ID: {}", pedido.getId());
+                return pedido;
             }
 
-            // 2. Calcular valor total do pedido
+            // 2. Se passou na verificação de estoque, validar itens
+            log.info("📦 Validando {} itens do pedido ID: {}", pedido.getItens().size(), pedido.getId());
+            validarItens(pedido.getItens());
+            log.info("✅ Itens validados com sucesso para pedido ID: {}", pedido.getId());
+
+            // 3. Calcular valor total
             BigDecimal valorTotal = calcularValorTotal(pedido);
             log.info("💰 Valor total do pedido ID: {} = R$ {}", pedido.getId(), valorTotal);
 
-            // 3. Validar valor mínimo (exemplo de regra de negócio)
-            if (valorTotal.compareTo(BigDecimal.ZERO) <= 0) {
-                log.warn("❌ Valor inválido para pedido ID: {} - Valor: R$ {}",
-                        pedido.getId(), valorTotal);
-                pedido.setStatus(StatusPedido.FECHADO_SEM_ESTOQUE);
-                return pedidoRepositoryPort.save(pedido);
-            }
-
-            // 4. Marcar como processado com sucesso
-            log.info("✅ Pedido aprovado e processado com sucesso - ID: {}", pedido.getId());
+            // 4. Aprovar pedido
             pedido.setStatus(StatusPedido.FECHADO_COM_SUCESSO);
+            log.info("✅ Pedido aprovado e processado com sucesso - ID: {}", pedido.getId());
 
-            return pedidoRepositoryPort.save(pedido);
+            return pedido;
 
         } catch (Exception e) {
-            log.error("❌ Erro inesperado no processamento do pedido ID: {}", pedido.getId(), e);
+            log.error("❌ Erro durante processamento do pedido ID: {}", pedido.getId(), e);
             pedido.setStatus(StatusPedido.FECHADO_SEM_ESTOQUE);
-            return pedidoRepositoryPort.save(pedido);
+            return pedido;
         }
     }
 
     /**
-     * Valida se os itens do pedido são válidos
-     * @param pedido Pedido a ser validado
-     * @return true se os itens são válidos
+     * Simula verificação de estoque
+     * Regras de simulação:
+     * - SKU001: Estoque limitado a 3 unidades
+     * - SKU002: Estoque limitado a 2 unidades
+     * - SKU003: Sem estoque (sempre falha)
+     * - Outros: Estoque OK
      */
-    private boolean validarItensPedido(Pedido pedido) {
-        if (pedido.getItens() == null || pedido.getItens().isEmpty()) {
-            log.warn("❌ Pedido sem itens - ID: {}", pedido.getId());
-            return false;
-        }
-
-        log.info("📦 Validando {} itens do pedido ID: {}",
+    private boolean verificarEstoque(Pedido pedido) {
+        log.info("📦 Verificando estoque para {} itens do pedido ID: {}",
                 pedido.getItens().size(), pedido.getId());
 
         for (ItemPedido item : pedido.getItens()) {
-            if (item.getQuantidade() <= 0 || item.getProdutoId() == null) {
-                log.warn("❌ Item inválido - Produto: {} Quantidade: {}",
-                        item.getProdutoId(), item.getQuantidade());
+            String produtoId = item.getProdutoId();
+            int quantidade = item.getQuantidade();
+
+            log.debug("🔍 Verificando produto: {} - Quantidade solicitada: {}", produtoId, quantidade);
+
+            // Simular regras de estoque
+            boolean temEstoque = switch (produtoId) {
+                case "SKU001" -> {
+                    boolean disponivel = quantidade <= 3;
+                    log.info("📦 SKU001 - Solicitado: {} | Disponível: 3 | Status: {}",
+                            quantidade, disponivel ? "✅ OK" : "❌ SEM ESTOQUE");
+                    yield disponivel;
+                }
+                case "SKU002" -> {
+                    boolean disponivel = quantidade <= 2;
+                    log.info("📦 SKU002 - Solicitado: {} | Disponível: 2 | Status: {}",
+                            quantidade, disponivel ? "✅ OK" : "❌ SEM ESTOQUE");
+                    yield disponivel;
+                }
+                case "SKU003" -> {
+                    log.info("📦 SKU003 - ❌ PRODUTO SEM ESTOQUE");
+                    yield false;
+                }
+                default -> {
+                    log.info("📦 {} - ✅ ESTOQUE OK (produto genérico)", produtoId);
+                    yield true;
+                }
+            };
+
+            if (!temEstoque) {
+                log.warn("❌ Estoque insuficiente para produto: {} (solicitado: {})", produtoId, quantidade);
                 return false;
             }
         }
 
-        log.info("✅ Itens validados com sucesso para pedido ID: {}", pedido.getId());
+        log.info("✅ Estoque verificado com sucesso para todos os itens do pedido ID: {}", pedido.getId());
         return true;
+    }
+
+    private void validarItens(List<ItemPedido> itens) {
+        if (itens == null || itens.isEmpty()) {
+            throw new IllegalArgumentException("Pedido deve conter pelo menos um item");
+        }
+
+        for (ItemPedido item : itens) {
+            if (item.getQuantidade() <= 0) {
+                throw new IllegalArgumentException("Quantidade deve ser maior que zero");
+            }
+            if (item.getProdutoId() == null || item.getProdutoId().trim().isEmpty()) {
+                throw new IllegalArgumentException("Produto ID é obrigatório");
+            }
+        }
     }
 
     /**
      * Calcula o valor total do pedido
      * @param pedido Pedido para calcular valor
-     * @return Valor total do pedido
+     * @return Valor total
      */
     private BigDecimal calcularValorTotal(Pedido pedido) {
-        BigDecimal total = pedido.getItens().stream()
+        log.debug("💵 Calculando valor total do pedido ID: {}", pedido.getId());
+
+        BigDecimal valorTotal = pedido.getItens().stream()
                 .map(item -> {
-                    // Converter Double para BigDecimal adequadamente
+                    // Usar preço do item se disponível, senão usar preço padrão
                     BigDecimal preco = item.getPrecoUnitario() != null ?
-                            BigDecimal.valueOf(item.getPrecoUnitario()) : BigDecimal.valueOf(100.0);
-                    return preco.multiply(BigDecimal.valueOf(item.getQuantidade()));
+                            BigDecimal.valueOf(item.getPrecoUnitario()) :
+                            BigDecimal.valueOf(100.0);
+
+                    BigDecimal subtotal = preco.multiply(BigDecimal.valueOf(item.getQuantidade()));
+                    log.debug("💵 Item {} - Preço: R$ {} x Qtd: {} = R$ {}",
+                            item.getProdutoId(), preco, item.getQuantidade(), subtotal);
+
+                    return subtotal;
                 })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        log.debug("💵 Cálculo valor total - Pedido ID: {} = R$ {}", pedido.getId(), total);
-        return total;
+        log.debug("💵 Cálculo valor total - Pedido ID: {} = R$ {}", pedido.getId(), valorTotal);
+        return valorTotal;
+    }
+
+    @Override
+    public PedidoResponseDTO consultarPedido(Long id) {
+        log.info("🔍 Buscando pedido por ID: {}", id);
+
+        Optional<Pedido> pedidoOpt = pedidoRepositoryPort.findById(id);
+        if (pedidoOpt.isEmpty()) {
+            log.warn("❌ Pedido não encontrado com ID: {}", id);
+            throw new RuntimeException("Pedido não encontrado com ID: " + id);
+        }
+
+        Pedido pedido = pedidoOpt.get();
+        log.info("✅ Pedido encontrado - ID: {} Status: {}", pedido.getId(), pedido.getStatus());
+        return pedidoMapper.toResponse(pedido);
+    }
+
+    @Override
+    public List<PedidoResponseDTO> listarPedidos() {
+        log.info("📋 Listando todos os pedidos");
+        List<Pedido> pedidos = pedidoRepositoryPort.findAll();
+        log.info("📋 Total de {} pedidos encontrados", pedidos.size());
+        return pedidos.stream()
+                .map(pedidoMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    public PedidoResponseDTO atualizarStatus(Long pedidoId, String novoStatus) {
+        log.info("🔄 Atualizando status do pedido ID: {} para: {}", pedidoId, novoStatus);
+
+        try {
+            // Atualizar status usando o método do repositório
+            Pedido pedidoAtualizado = pedidoRepositoryPort.atualizarStatus(pedidoId, novoStatus);
+            log.info("✅ Status atualizado com sucesso - Pedido ID: {} Status: {}",
+                    pedidoAtualizado.getId(), pedidoAtualizado.getStatus());
+
+            return pedidoMapper.toResponse(pedidoAtualizado);
+        } catch (Exception e) {
+            log.error("❌ Erro ao atualizar status do pedido ID: {}", pedidoId, e);
+            throw new RuntimeException("Erro ao atualizar status do pedido", e);
+        }
     }
 }
