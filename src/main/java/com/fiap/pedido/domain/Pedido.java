@@ -11,6 +11,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Pedido {
+
     private Long id;
     private Long clienteId;
     private List<ItemPedido> itens;

@@ -153,7 +153,7 @@ class PedidoRepositoryAdapterTest {
         PedidoEntity entityAtualizada = criarPedidoEntityComStatus(StatusPedido.FECHADO_COM_SUCESSO);
         Pedido pedidoAtualizado = criarPedidoDomainComStatus(StatusPedido.FECHADO_COM_SUCESSO);
 
-        when(pedidoRepository.findByIdWithItens(pedidoId)).thenReturn(Optional.of(entity));
+        when(pedidoRepository.findById(pedidoId)).thenReturn(Optional.of(entity));
         when(pedidoRepository.save(any(PedidoEntity.class))).thenReturn(entityAtualizada);
         when(pedidoMapper.toDomain(entityAtualizada)).thenReturn(pedidoAtualizado);
 
@@ -163,7 +163,7 @@ class PedidoRepositoryAdapterTest {
         assertEquals(StatusPedido.FECHADO_COM_SUCESSO, resultado.getStatus());
         assertEquals(pedidoId, resultado.getId());
 
-        verify(pedidoRepository).findByIdWithItens(pedidoId);
+        verify(pedidoRepository).findById(pedidoId);
         verify(pedidoRepository).save(any(PedidoEntity.class));
         verify(pedidoMapper).toDomain(entityAtualizada);
     }
@@ -173,12 +173,12 @@ class PedidoRepositoryAdapterTest {
         Long pedidoId = 1L;
         String novoStatus = "FECHADO_COM_SUCESSO";
 
-        when(pedidoRepository.findByIdWithItens(pedidoId)).thenReturn(Optional.empty());
+        when(pedidoRepository.findById(pedidoId)).thenReturn(Optional.empty());
 
         assertThrows(RuntimeException.class,
                 () -> pedidoRepositoryAdapter.atualizarStatus(pedidoId, novoStatus));
 
-        verify(pedidoRepository).findByIdWithItens(pedidoId);
+        verify(pedidoRepository).findById(pedidoId);
         verify(pedidoRepository, never()).save(any());
         verify(pedidoMapper, never()).toDomain(any(PedidoEntity.class));
     }
@@ -189,12 +189,12 @@ class PedidoRepositoryAdapterTest {
         String statusInvalido = "STATUS_INEXISTENTE";
         PedidoEntity entity = criarPedidoEntitySalvo();
 
-        when(pedidoRepository.findByIdWithItens(pedidoId)).thenReturn(Optional.of(entity));
+        when(pedidoRepository.findById(pedidoId)).thenReturn(Optional.of(entity));
 
         assertThrows(RuntimeException.class,
                 () -> pedidoRepositoryAdapter.atualizarStatus(pedidoId, statusInvalido));
 
-        verify(pedidoRepository).findByIdWithItens(pedidoId);
+        verify(pedidoRepository).findById(pedidoId);
         verify(pedidoRepository, never()).save(any());
         verify(pedidoMapper, never()).toDomain(any(PedidoEntity.class));
     }
@@ -205,13 +205,13 @@ class PedidoRepositoryAdapterTest {
         String novoStatus = "CANCELADO";
         PedidoEntity entity = criarPedidoEntitySalvo();
 
-        when(pedidoRepository.findByIdWithItens(pedidoId)).thenReturn(Optional.of(entity));
+        when(pedidoRepository.findById(pedidoId)).thenReturn(Optional.of(entity));
         when(pedidoRepository.save(any(PedidoEntity.class))).thenThrow(new RuntimeException("Erro ao salvar"));
 
         assertThrows(RuntimeException.class,
                 () -> pedidoRepositoryAdapter.atualizarStatus(pedidoId, novoStatus));
 
-        verify(pedidoRepository).findByIdWithItens(pedidoId);
+        verify(pedidoRepository).findById(pedidoId);
         verify(pedidoRepository).save(any(PedidoEntity.class));
         verify(pedidoMapper, never()).toDomain(any(PedidoEntity.class));
     }
